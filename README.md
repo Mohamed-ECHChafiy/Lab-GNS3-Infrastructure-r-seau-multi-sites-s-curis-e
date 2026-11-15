@@ -58,6 +58,10 @@ Le point intéressant du DMVPN Phase 3, c'est le **NHRP shortcut** : une fois qu
 
 **Bug rencontré et corrigé ici** : sur R-RABAT, la route par défaut apprise par OSPF pointait à travers le tunnel lui-même (`via Tunnel0`), alors que la vraie destination (l'adresse NBMA du hub, 10.0.0.2) devait être jointe directement par l'interface physique. Ce routage récursif rendait les sessions NHRP instables. Corrigé avec une route statique directe vers l'ISP, de distance administrative plus faible que la route OSPF, pour forcer le bon chemin.
 
+
+
+
+
 ## Étape 3 — Les switchs L3 du siège (MLS-1 et MLS-2) : la haute disponibilité
 
 Au cœur du siège, deux switchs multicouches, **MLS-1** et **MLS-2**, reliés par un **EtherChannel LACP** sur 3 liens physiques (mode `active` des deux côtés). Sur ces deux switchs tournent les VLANs du siège : 10 (USERS), 20 (SERVERS), 30 (VOICE), 99 (MANAGEMENT).
@@ -70,9 +74,18 @@ Ces deux switchs servent aussi de **serveurs DHCP** pour tous les sites (siège,
 
 **Bug rencontré et corrigé ici** : le relais DHCP (`ip helper-address`) pour les agences distantes. Ma première tentative pointait vers l'IP virtuelle HSRP d'un VLAN — ce qui ne marche pas, parce que le DHCP relay a besoin de joindre l'IP réelle et stable du serveur DHCP, pas une IP qui peut changer de switch actif selon l'état HSRP. J'ai donc fait pointer les `ip helper-address` vers les **Loopback0** de MLS-1 et MLS-2 (10.255.0.3 et 10.255.0.4), qui restent toujours joignables quel que soit l'état HSRP.
 
-## Étape 4 — Les switchs L2 d'accès (SW-1 et les autres)
+<img width="620" height="260" alt="sh cdp ne" src="https://github.com/user-attachments/assets/40b3435f-83f2-401f-8722-ee66eaf2e517" />
+<img width="621" height="233" alt="sh cdp ne" src="https://github.com/user-attachments/assets/ee838720-a0e5-44ed-994e-2236c30f2f99" />
+
+## Étape 4 — Les switchs L2 d'accès (SW-1,2,3 et les autres)
 
 En bout de chaîne, des switchs L2 purs (SW-1 au siège, un par agence) qui distribuent les VLANs vers les ports d'accès, avec un double uplink en trunk 802.1Q vers MLS-1 et MLS-2 pour le siège — encore une fois, pas de single point of failure.
+
+<img width="630" height="146" alt="sh cdp ne" src="https://github.com/user-attachments/assets/2aa4e9d0-e6f4-4536-8c61-3086e2531a25" />
+<img width="648" height="245" alt="sh vlan b" src="https://github.com/user-attachments/assets/943905d4-b66d-4766-a8c9-a117d43b7f9e" />
+<img width="577" height="294" alt="sh int trunk" src="https://github.com/user-attachments/assets/ef434fa1-ed94-4188-be35-74549a840d2c" />
+
+
 
 ## Les tests — est-ce que tout ça marche vraiment ?
 
@@ -132,9 +145,19 @@ Une fois que toutes les briques étaient montées, j'ai voulu vérifier concrèt
 
 **DHCP relay multi-site** : `show ip dhcp binding` sur MLS-1 montre des baux actifs pour des postes de Rabat et de Marrakech, servis depuis les pools centralisés du siège — la preuve que le relais fonctionne de bout en bout.
 
-<img width="661" height="173" alt="sh ip dhcp bi" src="https://github.com/user-attachments/assets/9fbb3af8-8033-4ec4-b4dd-7161cbd8ce56" />
-<img width="672" height="260" alt="sh ip dhcp bin" src="https://github.com/user-attachments/assets/9b4ad613-4ce7-40f6-8f29-2c971d104c15" />
+*MLS-1*
 
+<img width="655" height="401" alt="sh ip dhcp" src="https://github.com/user-attachments/assets/1260550b-707c-4cb2-846b-25aa64415365" />
+<img width="657" height="371" alt="sh ip dhcp 1" src="https://github.com/user-attachments/assets/118d1412-5a8d-47d4-bd6f-c5c44fde2eb5" />
+<img width="661" height="366" alt="sh ip dhcp2" src="https://github.com/user-attachments/assets/c5f813c5-4b7f-4741-805c-1c05ebdf1cd0" />
+<img width="661" height="173" alt="sh ip dhcp bi" src="https://github.com/user-attachments/assets/9fbb3af8-8033-4ec4-b4dd-7161cbd8ce56" />
+
+*MLS-2*
+
+<img width="644" height="399" alt="sh ip dhcp" src="https://github.com/user-attachments/assets/105ba356-74bc-4002-a92a-b26f59073f8b" />
+<img width="657" height="376" alt="sh ip dhcp1" src="https://github.com/user-attachments/assets/4bdb02c2-8583-4047-8bb2-689c242b64cc" />
+<img width="652" height="369" alt="sh ip dhcp2" src="https://github.com/user-attachments/assets/47c3f801-ae74-4d17-863f-a1af57e9a9b8" />
+<img width="672" height="260" alt="sh ip dhcp bin" src="https://github.com/user-attachments/assets/9b4ad613-4ce7-40f6-8f29-2c971d104c15" />
 
 ## Résultat
 
