@@ -64,7 +64,13 @@ Le point intéressant du DMVPN Phase 3, c'est le **NHRP shortcut** : une fois qu
 
 ## Étape 3 — Les switchs L3 du siège (MLS-1 et MLS-2) : la haute disponibilité
 
+<img width="620" height="260" alt="sh cdp ne" src="https://github.com/user-attachments/assets/40b3435f-83f2-401f-8722-ee66eaf2e517" />
+<img width="621" height="233" alt="sh cdp ne" src="https://github.com/user-attachments/assets/ee838720-a0e5-44ed-994e-2236c30f2f99" />
+
 Au cœur du siège, deux switchs multicouches, **MLS-1** et **MLS-2**, reliés par un **EtherChannel LACP** sur 3 liens physiques (mode `active` des deux côtés). Sur ces deux switchs tournent les VLANs du siège : 10 (USERS), 20 (SERVERS), 30 (VOICE), 99 (MANAGEMENT).
+
+<img width="626" height="279" alt="sh vlan b" src="https://github.com/user-attachments/assets/293c8897-957a-4f3c-a7db-06179a37a904" />
+<img width="644" height="260" alt="sh vlan b" src="https://github.com/user-attachments/assets/ad49632f-3283-43c7-aef7-5f3b40568bd0" />
 
 Pour la redondance de passerelle, j'ai mis du **HSRP** par VLAN, mais pas tout sur le même switch — j'ai réparti la charge : MLS-1 est actif pour les VLANs 10 et 20, MLS-2 est actif pour 30 et 99. Chaque switch sert donc du trafic réel en fonctionnement normal, pas juste en secours.
 
@@ -74,8 +80,13 @@ Ces deux switchs servent aussi de **serveurs DHCP** pour tous les sites (siège,
 
 **Bug rencontré et corrigé ici** : le relais DHCP (`ip helper-address`) pour les agences distantes. Ma première tentative pointait vers l'IP virtuelle HSRP d'un VLAN — ce qui ne marche pas, parce que le DHCP relay a besoin de joindre l'IP réelle et stable du serveur DHCP, pas une IP qui peut changer de switch actif selon l'état HSRP. J'ai donc fait pointer les `ip helper-address` vers les **Loopback0** de MLS-1 et MLS-2 (10.255.0.3 et 10.255.0.4), qui restent toujours joignables quel que soit l'état HSRP.
 
-<img width="620" height="260" alt="sh cdp ne" src="https://github.com/user-attachments/assets/40b3435f-83f2-401f-8722-ee66eaf2e517" />
-<img width="621" height="233" alt="sh cdp ne" src="https://github.com/user-attachments/assets/ee838720-a0e5-44ed-994e-2236c30f2f99" />
+*R-RABAT*
+
+<img width="391" height="366" alt="show run | include helper-address" src="https://github.com/user-attachments/assets/bc616896-cff9-401f-83e0-edf49159923a" />
+
+*R-MARRAKECH* 
+
+<img width="391" height="366" alt="show run | include helper-address" src="https://github.com/user-attachments/assets/ea2a9840-bce8-4077-b08a-e5b724e669d7" />
 
 ## Étape 4 — Les switchs L2 d'accès (SW-1,2,3 et les autres)
 
