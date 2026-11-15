@@ -1,0 +1,32 @@
+2026-10-08T20:15:35.255Z HYPERVISOR: Release 0.2.25-amd64/Linux (tag 2023010200)
+2026-10-08T20:15:35.255Z HYPERVISOR: Started on IP = 127.0.0.1, TCP port = 37793.
+2026-10-08T20:15:35.261Z HYPERVISOR: exec_cmd: hypervisor version 
+2026-10-08T20:15:35.261Z HYPERVISOR: exec_cmd: hypervisor working_dir /home/mint/Desktop/prje-network/project-files/dynamips 
+2026-10-08T20:15:35.261Z GENERAL: working_dir=/home/mint/Desktop/prje-network/project-files/dynamips
+2026-10-08T20:15:35.261Z HYPERVISOR: exec_cmd: hypervisor working_dir /home/mint/Desktop/prje-network/project-files/dynamips/0cc79d76-5ac6-4195-a227-55aaf2721196 
+2026-10-08T20:15:35.261Z GENERAL: working_dir=/home/mint/Desktop/prje-network/project-files/dynamips/0cc79d76-5ac6-4195-a227-55aaf2721196
+2026-10-08T20:15:35.262Z HYPERVISOR: exec_cmd: vm create R1 1 c7200 
+2026-10-08T20:15:35.265Z VM: VM R1 created.
+2026-10-08T20:15:35.265Z HYPERVISOR: exec_cmd: vm set_con_tcp_port R1 5000 
+2026-10-08T20:15:35.265Z HYPERVISOR: exec_cmd: c7200 get_mac_addr R1 
+2026-10-08T20:15:35.266Z HYPERVISOR: exec_cmd: vm get_status R1 
+2026-10-08T20:15:35.266Z HYPERVISOR: exec_cmd: vm slot_add_binding R1 0 0 C7200-IO-FE 
+2026-10-08T20:15:35.266Z HYPERVISOR: exec_cmd: vm set_disk0 R1 0 
+2026-10-08T20:15:35.267Z HYPERVISOR: exec_cmd: vm get_status R1 
+2026-10-08T20:15:35.267Z HYPERVISOR: exec_cmd: vm set_idle_pc R1 0x60630d08 
+2026-10-08T20:15:35.268Z HYPERVISOR: exec_cmd: vm set_ios R1 /home/mint/GNS3/images/IOS/c7200-adventerprisek9-mz.153-3.XB12.image 
+2026-10-08T20:15:35.268Z HYPERVISOR: exec_cmd: c7200 set_mac_addr R1 ca01.0b16.0000 
+2026-10-08T20:15:35.269Z HYPERVISOR: exec_cmd: vm set_nvram R1 512 
+2026-10-08T20:15:35.269Z HYPERVISOR: exec_cmd: vm set_ram R1 512 
+2026-10-08T20:15:35.269Z HYPERVISOR: exec_cmd: vm get_status R1 
+2026-10-08T20:15:35.269Z HYPERVISOR: exec_cmd: vm slot_add_binding R1 1 0 PA-A1 
+2026-10-08T20:15:35.270Z HYPERVISOR: exec_cmd: vm get_status R1 
+2026-10-08T20:15:35.270Z HYPERVISOR: exec_cmd: vm slot_add_binding R1 2 0 PA-FE-TX 
+2026-10-08T20:15:35.270Z HYPERVISOR: exec_cmd: vm get_status R1 
+2026-10-08T20:15:35.270Z HYPERVISOR: exec_cmd: vm slot_add_binding R1 3 0 PA-2FE-TX 
+2026-10-08T20:15:35.271Z HYPERVISOR: exec_cmd: vm get_status R1 
+2026-10-08T20:15:35.271Z HYPERVISOR: exec_cmd: vm slot_add_binding R1 4 0 PA-GE 
+2026-10-08T20:15:35.271Z HYPERVISOR: exec_cmd: vm get_status R1 
+2026-10-08T20:15:35.271Z HYPERVISOR: exec_cmd: vm slot_add_binding R1 5 0 PA-4T+ 
+2026-10-08T20:15:35.272Z HYPERVISOR: exec_cmd: vm get_status R1 
+2026-10-08T20:15:35.272Z HYPERVISOR: exec_cmd: vm slot_add_binding R1 6 0 PA-8T 
