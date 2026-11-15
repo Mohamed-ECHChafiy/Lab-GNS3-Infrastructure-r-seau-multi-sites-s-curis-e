@@ -1,12 +1,40 @@
 # Lab GNS3 — Infrastructure réseau multi-sites sécurisée
 
-![Topologie du lab](lab_topology.png)
+## 🗺️ Topologie du lab
+
+<img width="762" height="409" alt="labe" src="https://github.com/user-attachments/assets/b9545bbd-f90c-4fc3-bcf0-c142ff8bc69f" />
 
 ## L'idée du projet
 
 Je voulais construire, de A à Z, l'infrastructure réseau d'une PME marocaine avec un siège et deux agences, pour mettre en pratique — sur de l'IOS Cisco réel dans GNS3, pas un simulateur simplifié — tout ce que j'ai vu en CCNA et en stage : routage dynamique multi-site, haute disponibilité au cœur du réseau, et surtout une interconnexion WAN chiffrée entre les sites, comme ce qu'on ferait dans une vraie entreprise avec des agences distantes.
 
 Le scénario : un siège à **Casablanca** (HQ), deux agences à **Rabat** et **Marrakech**, le tout relié à travers un **ISP simulé**. L'objectif n'était pas juste de faire "ça ping", mais de construire quelque chose de redondant, de sécurisé, et de le dépanner moi-même quand ça casse — ce qui, dans un lab virtualisé, arrive souvent pour des raisons qu'on ne voit jamais sur du vrai matériel.
+
+## Topologie
+ 
+| Site | Rôle | Équipements |
+|---|---|---|
+| **ISP** | Cœur Internet simulé | 1 routeur (pas de route vers les réseaux privés) |
+| **HQ — Casablanca** | Siège | 2 routeurs Edge (**R1-Edge**, **R2-Edge**), 2 switchs L3 (**MLS-1**, **MLS-2**), switchs L2 d'accès (**SW-1**, SW-2/3/4) |
+| **Branch — Rabat** | Agence 1 | 1 routeur router-on-a-stick (**R-RABAT**), 1 switch L2 (**SW-RABAT**) |
+| **Branch — Marrakech** | Agence 2 | 1 routeur router-on-a-stick (**R-Marrakech**), 1 switch L2 (**SW-5**) |
+ 
+## Plan d'adressage (extrait)
+ 
+| Site | VLAN / Rôle | Subnet |
+|---|---|---|
+| HQ | VLAN 10 — USERS | 192.168.10.0/24 |
+| HQ | VLAN 20 — SERVERS | 192.168.20.0/24 |
+| HQ | VLAN 30 — VOICE | 192.168.30.0/24 |
+| HQ | VLAN 99 — MANAGEMENT | 192.168.99.0/24 |
+| Rabat | USERS | 192.168.110.0/24 |
+| Rabat | VOICE | 192.168.130.0/24 |
+| Rabat | MANAGEMENT | 192.168.90.0/24 |
+| Marrakech | USERS | 192.168.210.0/24 |
+| Marrakech | VOICE | 192.168.230.0/24 |
+| Overlay DMVPN | Tunnel0 | 172.168.0.0/24 |
+| Loopbacks (Management/BGP-free stable IDs) | R1/R2/MLS-1/MLS-2/R-RABAT/R-Marrakech | 10.255.0.1 – 10.255.0.7 |
+
 
 ## Étape 1 — Les routeurs Edge (R1-Edge et R2-Edge) : la porte d'entrée du siège
 
@@ -52,28 +80,65 @@ Une fois que toutes les briques étaient montées, j'ai voulu vérifier concrèt
 
 **OSPF** : `show ip ospf neighbor` sur R1-Edge confirme une adjacence FULL avec R2-Edge (BDR) et les deux spokes (DROTHER) sur le tunnel, plus les deux switchs du siège sur les liens physiques.
 
+<img width="634" height="143" alt="r1-ip ospf" src="https://github.com/user-attachments/assets/db1ad6b6-4e0e-4971-a290-8f09ed54f326" />
+
+<img width="628" height="157" alt="Screenshot from 2026-11-14 17-00-30" src="https://github.com/user-attachments/assets/6f4dbe15-0dbd-4087-90fa-dd3464d7de74" />
+
 **DMVPN dual-hub** : `show dmvpn detail` sur R1-Edge et sur R2-Edge montre chacun les trois pairs (l'autre hub + les deux spokes), avec les tunnels spoke marqués `UP`.
+
+<img width="625" height="281" alt="sh dmvpn" src="https://github.com/user-attachments/assets/1c840e4c-27fb-4677-b9ee-8f60ef3d385f" />
+
+<img width="632" height="356" alt="image" src="https://github.com/user-attachments/assets/763d1418-8205-4044-a926-29bc7b76c941" />
 
 **IPsec sur les deux hubs** : `show crypto isakmp sa` et `show crypto ipsec sa` confirment des sessions `QM_IDLE` / `UP-ACTIVE` avec `esp-256-aes esp-sha256-hmac`, zéro paquet perdu, sur R1-Edge comme sur R2-Edge après correction du bug du pre-share key.
 
+<img width="598" height="378" alt="show crypto ipsec sa" src="https://github.com/user-attachments/assets/7b52b3bc-e344-4409-8e9a-249b106d0381" />
+<img width="586" height="365" alt="show crypto ipsec sa " src="https://github.com/user-attachments/assets/ebf0c5e4-160d-44e7-9112-5aa6db4dee36" />
+
 **Spoke-to-spoke — la preuve la plus importante du projet** : j'ai voulu confirmer que le trafic Rabat ↔ Marrakech passe vraiment en direct, et pas via le siège.
 - Sur R-RABAT, `show crypto isakmp sa` montre une session IKE active directement avec 10.0.0.14 (Marrakech), en plus de celle avec le hub.
+  
+  <img width="525" height="107" alt="shcry" src="https://github.com/user-attachments/assets/7006f101-f782-493c-b06a-dbefd73045a1" />
+  <img width="504" height="114" alt="sh crypto iskamp " src="https://github.com/user-attachments/assets/f606ec2f-bc7f-414a-864f-df003349869e" />
+
 - J'ai capturé le trafic avec Wireshark sur le lien ISP ↔ R-RABAT pendant un test PC Rabat → PC Marrakech. Résultat : une série de trames **ESP échangées directement entre 10.0.0.10 et 10.0.0.14**, jamais via 10.0.0.2 ou 10.0.0.6 (les hubs). C'est la preuve réseau, pas juste un `show` : le tunnel spoke-to-spoke est réellement emprunté et chiffré.
 - Pour confirmer côté applicatif, j'ai fait un `traceroute` depuis PC3 (Rabat) vers un hôte à Marrakech (192.168.230.11) : le deuxième saut arrive directement sur `172.168.0.4` (le tunnel de R-Marrakech), en un seul saut, sans passer par un hub. Le dernier saut renvoie un "destination port unreachable" — ce qui n'est pas une erreur de routage, c'est la réponse normale d'un hôte qui a bien reçu les sondes UDP du traceroute mais n'écoute pas sur ce port précis. Le paquet est donc bien arrivé jusqu'au bout.
 
+<img width="649" height="190" alt="image" src="https://github.com/user-attachments/assets/ee648807-9618-4732-82bf-6de0f9bc3f95" />
+<img width="1370" height="396" alt="ping" src="https://github.com/user-attachments/assets/f1e9a577-8e1b-41f8-b083-f9b09f53ad41" />
+
 **NAT/PAT** : `show ip nat translations` et un `debug ip nat` en direct confirment la traduction d'un poste du LAN (192.168.10.x) vers l'IP publique du routeur Edge quand il sort vers Internet (8.8.8.8), et uniquement dans ce cas — le trafic entre sites privés (HQ ↔ Rabat ↔ Marrakech) continue de passer par le routage normal, sans NAT, puisque les deux bouts sont des réseaux privés routés.
+
+<img width="470" height="180" alt="image" src="https://github.com/user-attachments/assets/927aeed6-cd00-479d-a92a-70c56d0f483a" />
+<img width="628" height="108" alt="image" src="https://github.com/user-attachments/assets/ec1c1820-0749-4133-9115-b46dece638ff" />
+<img width="590" height="195" alt="image" src="https://github.com/user-attachments/assets/b9835932-7938-433c-b1fe-2e8c72d17c2d" />
 
 **HSRP / EtherChannel / STP** : `show standby brief` confirme la répartition de charge entre MLS-1 et MLS-2, `show etherchannel summary` confirme le Port-channel1 en LACP actif sur les 3 liens, et `show spanning-tree root` confirme que le root STP suit bien l'actif HSRP VLAN par VLAN.
 
+***HSRP***
+
+<img width="630" height="145" alt="ah std br" src="https://github.com/user-attachments/assets/0be78c44-59af-46e5-8f99-f1100fac4a65" />
+<img width="618" height="145" alt="sh sta br" src="https://github.com/user-attachments/assets/f047ae1e-c7ac-4201-905e-a5fa8b08c35b" />
+
+***EtherChannel***
+
+<img width="650" height="150" alt="sh eth sum" src="https://github.com/user-attachments/assets/7537e4ed-394f-4a9b-bfb8-c253761a8da9" />
+<img width="545" height="141" alt="sh eth sum" src="https://github.com/user-attachments/assets/0792cf0d-57a5-4912-96aa-589c27a38d3f" />
+
+***STP***
+
+<img width="644" height="398" alt="sh spa" src="https://github.com/user-attachments/assets/9e1d853b-3eaf-4a14-941d-096eb9926e89" />
+<img width="634" height="396" alt="sh spa" src="https://github.com/user-attachments/assets/679f95e7-ead8-4dad-b631-67d5fcb53683" />
+
 **DHCP relay multi-site** : `show ip dhcp binding` sur MLS-1 montre des baux actifs pour des postes de Rabat et de Marrakech, servis depuis les pools centralisés du siège — la preuve que le relais fonctionne de bout en bout.
+
+<img width="661" height="173" alt="sh ip dhcp bi" src="https://github.com/user-attachments/assets/9fbb3af8-8033-4ec4-b4dd-7161cbd8ce56" />
+<img width="672" height="260" alt="sh ip dhcp bin" src="https://github.com/user-attachments/assets/9b4ad613-4ce7-40f6-8f29-2c971d104c15" />
+
 
 ## Résultat
 
 Le lab répond à l'objectif de départ : un siège redondant avec deux hubs DMVPN et deux switchs L3 en haute disponibilité, deux agences connectées en DMVPN Phase 3 avec tunnel spoke-to-spoke chiffré confirmé par capture, et une sortie Internet mutualisée via NAT. Chaque bug rencontré pendant la construction (mismatch ISAKMP entre les deux hubs, routage récursif sur un spoke, mauvaise cible de DHCP relay) a été diagnostiqué par la même méthode : comparer les `show` entre les équipements censés être symétriques, puis vérifier par capture ou par test réel après correction — plutôt que de supposer que la config est bonne parce qu'elle "a l'air" correcte.
-
-## Où mettre les captures d'écran
-
-Place tes screenshots dans un dossier `screenshots/` à la racine du repo, avec un sous-dossier par équipement (`screenshots/R1-Edge/`, `screenshots/R2-Edge/`, `screenshots/R-RABAT/`, `screenshots/R-Marrakech/`, `screenshots/MLS-1/`, `screenshots/MLS-2/`, `screenshots/SW-1/`), puis référence-les dans ce README avec `![description](screenshots/R1-Edge/nom-image.png)` à l'endroit du paragraphe correspondant. Les plus utiles à montrer : `show dmvpn detail`, la capture Wireshark ESP spoke-to-spoke, `show crypto isakmp sa` avant/après le fix du bug R2-Edge, `show standby brief`, et le traceroute PC3 → Marrakech.
 
 ## Schéma complet
 
