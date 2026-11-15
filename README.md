@@ -174,10 +174,6 @@ Une fois que toutes les briques étaient montées, j'ai voulu vérifier concrèt
 
 Le lab répond à l'objectif de départ : un siège redondant avec deux hubs DMVPN et deux switchs L3 en haute disponibilité, deux agences connectées en DMVPN Phase 3 avec tunnel spoke-to-spoke chiffré confirmé par capture, et une sortie Internet mutualisée via NAT. Chaque bug rencontré pendant la construction (mismatch ISAKMP entre les deux hubs, routage récursif sur un spoke, mauvaise cible de DHCP relay) a été diagnostiqué par la même méthode : comparer les `show` entre les équipements censés être symétriques, puis vérifier par capture ou par test réel après correction — plutôt que de supposer que la config est bonne parce qu'elle "a l'air" correcte.
 
-## Schéma complet
-
-Le fichier [`lab_topology.svg`](lab_topology.svg) contient le plan d'adressage détaillé (IP, VLANs, liens point-à-point), le schéma de l'overlay DMVPN et la liste des protocoles mis en œuvre.
-
 ## Compétences mobilisées
 
 `OSPF multi-area` `EtherChannel/LACP` `Rapid-PVST+` `HSRP` `VLAN/Trunking 802.1Q` `DHCP/DHCP Relay` `NAT/PAT` `DMVPN (mGRE/NHRP)` `IPsec/IKE` `Wireshark` `GNS3` `Troubleshooting CLI avancé`
